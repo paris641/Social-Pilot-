@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Bell, Search, Command } from 'lucide-react';
+import { Bell, Search, Command, Sun, Moon } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 export default function Topbar() {
-  const { unreadCount, notifications, setSearchQuery, setIsSearchOpen, clients } = useAppStore();
+  const { unreadCount, notifications, setSearchQuery, setIsSearchOpen, clients, theme, setTheme } = useAppStore();
   const [showNotifs, setShowNotifs] = useState(false);
   const [searchVal, setSearchVal] = useState('');
   const navigate = useNavigate();
@@ -72,6 +72,16 @@ export default function Topbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Theme toggle */}
+        <div>
+          <button
+            className="p-2 rounded-lg hover:bg-accent transition-colors"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
         {/* Notifications */}
         <div className="relative">
           <button

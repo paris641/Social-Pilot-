@@ -21,6 +21,7 @@ import { notificationsApi, clientsApi } from './services/api';
 export default function App() {
   const { setClients, setNotifications, setUnreadCount } = useAppStore();
   const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
 
   const { data: clients } = useQuery({
     queryKey: ['clients'],
@@ -51,6 +52,18 @@ export default function App() {
       else document.documentElement.classList.remove('dark');
     }
   }, [theme]);
+
+  // If no persisted store exists, respect system preference on first load
+  useEffect(() => {
+    try {
+      const key = 'socialpilot-store';
+      const stored = localStorage.getItem(key);
+      if (!stored && typeof window !== 'undefined' && window.matchMedia) {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark ? 'dark' : 'light');
+      }
+    } catch {}
+  }, []);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

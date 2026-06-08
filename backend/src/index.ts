@@ -9,6 +9,7 @@ import { calendarRoutes } from './routes/calendar';
 import { contentRoutes } from './routes/content';
 import { aiRoutes } from './routes/ai';
 import { reportRoutes } from './routes/reports';
+import { generateReportsForAll } from './routes/reports';
 import { notificationRoutes } from './routes/notifications';
 import { settingsRoutes } from './routes/settings';
 import { errorHandler } from './middleware/errorHandler';
@@ -56,5 +57,34 @@ start().catch((err) => {
   logger.error('Failed to start server:', err);
   process.exit(1);
 });
+
+// Scheduler: generate monthly reports for previous month on the 1st at 02:00
+async function scheduleMonthlyReports() {
+  try {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0, 0); // 1st of next month at 02:00
+    const ms = next.getTime() - now.getTime();
+    logger.info(`Scheduling next monthly report generation in ${Math.round(ms / 1000 / 60)} minutes`);
+
+    setTimeout(async () => {
+      try {
+        logger.info('Running scheduled monthly report generation');
+        await generateReportsForAll();
+      } catch (err) {
+        logger.error('Scheduled report generation failed:', err);
+      } finally {
+        // schedule again
+        scheduleMonthlyReports();
+      }
+    }, ms);
+  } catch (err) {
+    logger.error('Failed to schedule monthly reports:', err);
+  }
+}
+
+// Start scheduler only if RUN_SCHEDULER env var is true
+if (process.env.RUN_SCHEDULER === 'true') {
+  scheduleMonthlyReports();
+}
 
 export default app;

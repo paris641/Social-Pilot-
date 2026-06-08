@@ -15,30 +15,27 @@ function getOpenAI() {
 }
 
 // POST generate and save monthly report (can be called by a scheduler)
-reportRoutes.post('/generate', async (req, res, next) => {
-  try {
-    const { clientId, month, year } = req.body;
-    if (!clientId || !month || !year) return res.status(400).json({ error: 'clientId, month and year required' });
+// helper to build and save a monthly report for a client
+async function buildReportForClient(clientId: string, month: number, year: number) {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
+  const [client, posts, analytics] = await Promise.all([
+    prisma.client.findUnique({ where: { id: clientId }, include: { socialAccounts: true } }),
+    prisma.calendarEntry.findMany({ where: { clientId, date: { gte: startDate, lte: endDate } } }),
+    prisma.analyticsSnapshot.findMany({ where: { clientId, date: { gte: startDate, lte: endDate } }, orderBy: { date: 'asc' } }),
+  ]);
 
-    const [client, posts, analytics] = await Promise.all([
-      prisma.client.findUnique({ where: { id: clientId }, include: { socialAccounts: true } }),
-      prisma.calendarEntry.findMany({ where: { clientId, date: { gte: startDate, lte: endDate } } }),
-      prisma.analyticsSnapshot.findMany({ where: { clientId, date: { gte: startDate, lte: endDate } }, orderBy: { date: 'asc' } }),
-    ]);
+  const postedPosts = posts.filter((p) => p.status === 'posted');
+  const reelsCount = postedPosts.filter((p) => p.contentType === 'reel').length;
+  const storiesCount = postedPosts.filter((p) => p.contentType === 'story').length;
+  const postsCount = postedPosts.filter((p) => p.contentType === 'post').length;
 
-    const postedPosts = posts.filter((p) => p.status === 'posted');
-    const reelsCount = postedPosts.filter((p) => p.contentType === 'reel').length;
-    const storiesCount = postedPosts.filter((p) => p.contentType === 'story').length;
-    const postsCount = postedPosts.filter((p) => p.contentType === 'post').length;
+  const avgEngagement = analytics.length > 0 ? analytics.reduce((sum, a) => sum + a.engagement, 0) / analytics.length : 0;
+  const totalReach = analytics.reduce((sum, a) => sum + a.reach, 0);
+  const followerGrowth = analytics.length > 1 ? analytics[analytics.length - 1].followers - analytics[0].followers : 0;
 
-    const avgEngagement = analytics.length > 0 ? analytics.reduce((sum, a) => sum + a.engagement, 0) / analytics.length : 0;
-    const totalReach = analytics.reduce((sum, a) => sum + a.reach, 0);
-    const followerGrowth = analytics.length > 1 ? analytics[analytics.length - 1].followers - analytics[0].followers : 0;
-
-    const prompt = `Write a professional social media monthly report executive summary.
+  const prompt = `Write a professional social media monthly report executive summary.
 
 Client: ${client?.name} (${client?.brandName})
 Industry: ${client?.industry}
@@ -61,22 +58,32 @@ Write:
 
 Be specific and data-driven. Professional agency tone.`;
 
-    const openai = getOpenAI();
-    const response = await openai.chat.completions.create({ model: 'gpt-4o', messages: [{ role: 'user', content: prompt }], max_tokens: 600 });
-    const summary = response.choices[0].message.content;
+  const openai = getOpenAI();
+  const response = await openai.chat.completions.create({ model: 'gpt-4o', messages: [{ role: 'user', content: prompt }], max_tokens: 600 });
+  const summary = response.choices[0].message.content;
 
-    const report = await prisma.report.create({
-      data: {
-        clientId,
-        title: `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year} Report`,
-        month,
-        year,
-        summary,
-        insights: JSON.stringify({}),
-        metrics: JSON.stringify({ postedPosts: postedPosts.length, postsCount, storiesCount, reelsCount, avgEngagement, totalReach, followerGrowth }),
-      },
-    });
+  const report = await prisma.report.create({
+    data: {
+      clientId,
+      title: `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year} Report`,
+      month,
+      year,
+      summary,
+      insights: JSON.stringify({}),
+      metrics: JSON.stringify({ postedPosts: postedPosts.length, postsCount, storiesCount, reelsCount, avgEngagement, totalReach, followerGrowth }),
+    },
+  });
 
+  return report;
+}
+
+// POST generate and save monthly report (can be called by a scheduler)
+reportRoutes.post('/generate', async (req, res, next) => {
+  try {
+    const { clientId, month, year } = req.body;
+    if (!clientId || !month || !year) return res.status(400).json({ error: 'clientId, month and year required' });
+
+    const report = await buildReportForClient(clientId, month, year);
     res.status(201).json({ success: true, data: report });
   } catch (err) {
     next(err);
@@ -213,6 +220,41 @@ reportRoutes.delete('/:id', async (req, res, next) => {
   try {
     await prisma.report.delete({ where: { id: req.params.id } });
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST generate reports for all clients for a given month/year (admin)
+export async function generateReportsForAll(month?: number, year?: number) {
+  const target = (() => {
+    if (month && year) return { month, year };
+    const now = new Date();
+    // default to previous month
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return { month: prev.getMonth() + 1, year: prev.getFullYear() };
+  })();
+
+  const clients = await prisma.client.findMany({ where: { isArchived: false } });
+  const results: any[] = [];
+
+  for (const c of clients) {
+    try {
+      const r = await buildReportForClient(c.id, target.month, target.year);
+      results.push({ clientId: c.id, reportId: r.id });
+    } catch (err) {
+      logger.error(`Failed to generate report for client ${c.id}:`, err);
+    }
+  }
+
+  return results;
+}
+
+reportRoutes.post('/generate-all', async (req, res, next) => {
+  try {
+    const { month, year } = req.body;
+    const results = await generateReportsForAll(month, year);
+    res.json({ success: true, data: results });
   } catch (err) {
     next(err);
   }
