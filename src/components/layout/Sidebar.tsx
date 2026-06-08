@@ -65,6 +65,7 @@ export default function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={() => { if (sidebarCollapsed) setSidebarCollapsed(false); }}
             className={({ isActive }) =>
               cn('nav-item', isActive && 'active', sidebarCollapsed && 'justify-center px-2')
             }
@@ -97,6 +98,7 @@ export default function Sidebar() {
                   key={client.id}
                   onClick={() => {
                     setSelectedClientId(client.id);
+                    if (sidebarCollapsed) setSidebarCollapsed(false);
                     navigate(`/clients/${client.id}`);
                   }}
                   className={cn(

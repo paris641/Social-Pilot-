@@ -60,6 +60,22 @@ export default function Reports({ clientId: propClientId }: ReportsProps) {
     }
   };
 
+  const handleGenerateAndSave = async () => {
+    if (!clientId) return;
+    setIsGenerating(true);
+    try {
+      const report = await reportsApi.generate({ clientId, month: selectedMonth, year: selectedYear });
+      qc.invalidateQueries({ queryKey: ['reports', clientId] });
+      setShowCreate(false);
+      setSummary('');
+      setMetrics(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (!clientId) return <div className="p-6 text-muted-foreground">Select a client to view reports</div>;
 
   return (
@@ -217,6 +233,14 @@ export default function Reports({ clientId: propClientId }: ReportsProps) {
                   ) : (
                     <><Sparkles size={14} /> Generate with AI</>
                   )}
+                </button>
+
+                <button
+                  className="btn-secondary w-full"
+                  onClick={handleGenerateAndSave}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? 'Generating...' : 'Generate & Save Report'}
                 </button>
 
                 {/* Metrics preview */}

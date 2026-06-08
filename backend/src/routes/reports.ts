@@ -6,6 +6,8 @@ import { prisma } from '../utils/database';
 import { logger } from '../utils/logger';
 import OpenAI from 'openai';
 
+export const reportRoutes = Router();
+
 function getOpenAI() {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OpenAI API key not configured');
@@ -80,8 +82,6 @@ Be specific and data-driven. Professional agency tone.`;
     next(err);
   }
 });
-
-export const reportRoutes = Router();
 
 // GET reports for a client
 reportRoutes.get('/client/:clientId', async (req, res, next) => {

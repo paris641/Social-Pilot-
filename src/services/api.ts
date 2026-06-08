@@ -84,6 +84,7 @@ export const reportsApi = {
   getForClient: (clientId: string) =>
     api.get(`/reports/client/${clientId}`).then((r) => r.data.data),
   create: (data: any) => api.post('/reports', data).then((r) => r.data.data),
+  generate: (data: any) => api.post('/reports/generate', data).then((r) => r.data.data),
   downloadPdf: (id: string) => `/api/reports/${id}/pdf`,
   delete: (id: string) => api.delete(`/reports/${id}`).then((r) => r.data),
 };
