@@ -20,6 +20,7 @@ import { notificationsApi, clientsApi } from './services/api';
 
 export default function App() {
   const { setClients, setNotifications, setUnreadCount } = useAppStore();
+  const theme = useAppStore((s) => s.theme);
 
   const { data: clients } = useQuery({
     queryKey: ['clients'],
@@ -42,6 +43,14 @@ export default function App() {
       setUnreadCount(notifications.length);
     }
   }, [notifications]);
+
+  // Apply theme class to document element
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (theme === 'dark') document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

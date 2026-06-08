@@ -3,7 +3,41 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light mode defaults */
   :root {
+    --background: 0 0% 98%;
+    --foreground: 220 15% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
+    --primary: 252 95% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 98%;
+    --secondary-foreground: 220 15% 12%;
+    --muted: 220 16% 96%;
+    --muted-foreground: 220 14% 50%;
+    --accent: 240 5% 98%;
+    --accent-foreground: 220 15% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 14% 90%;
+    --input: 0 0% 98%;
+    --ring: 252 95% 65%;
+    --radius: 0.75rem;
+
+    /* Custom */
+    --violet: #6366f1;
+    --violet-light: #818cf8;
+    --emerald: #10b981;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --cyan: #06b6d4;
+    --sidebar-width: 240px;
+  }
+
+  /* Dark mode overrides (applied when `dark` class is on documentElement) */
+  .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 5.5%;
@@ -23,16 +57,6 @@
     --border: 240 5% 14%;
     --input: 240 5% 14%;
     --ring: 252 95% 65%;
-    --radius: 0.75rem;
-
-    /* Custom */
-    --violet: #6366f1;
-    --violet-light: #818cf8;
-    --emerald: #10b981;
-    --amber: #f59e0b;
-    --rose: #f43f5e;
-    --cyan: #06b6d4;
-    --sidebar-width: 240px;
   }
 
   * {
