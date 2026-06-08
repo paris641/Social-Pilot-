@@ -254,6 +254,8 @@ aiRoutes.post('/report-summary', async (req, res, next) => {
 
     const postedPosts = posts.filter((p) => p.status === 'posted');
     const reelsCount = postedPosts.filter((p) => p.contentType === 'reel').length;
+    const storiesCount = postedPosts.filter((p) => p.contentType === 'story').length;
+    const postsCount = postedPosts.filter((p) => p.contentType === 'post').length;
     const avgEngagement =
       analytics.length > 0
         ? analytics.reduce((sum, a) => sum + a.engagement, 0) / analytics.length
@@ -273,7 +275,9 @@ Industry: ${client?.industry}
 Month: ${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}
 
 Stats:
-- Total posts published: ${postedPosts.length}
+- Total posts published (all formats): ${postedPosts.length}
+- Feed posts published: ${postsCount}
+- Stories published: ${storiesCount}
 - Reels published: ${reelsCount}
 - Average engagement rate: ${avgEngagement.toFixed(2)}%
 - Total reach: ${totalReach.toLocaleString()}
@@ -299,7 +303,15 @@ Be specific and data-driven. Professional agency tone.`;
       success: true,
       data: {
         summary,
-        metrics: { postedPosts: postedPosts.length, reelsCount, avgEngagement, totalReach, followerGrowth },
+        metrics: {
+          postedPosts: postedPosts.length,
+          postsCount,
+          storiesCount,
+          reelsCount,
+          avgEngagement,
+          totalReach,
+          followerGrowth,
+        },
       },
     });
   } catch (err) {

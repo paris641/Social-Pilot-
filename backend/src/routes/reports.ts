@@ -92,6 +92,8 @@ reportRoutes.get('/:id/pdf', async (req, res: Response, next) => {
         const metricY = 230;
         const metricItems = [
           ['Posts Published', metrics.postedPosts || 0],
+          ['Feed Posts', metrics.postsCount || 0],
+          ['Stories', metrics.storiesCount || 0],
           ['Reels', metrics.reelsCount || 0],
           ['Avg Engagement', `${(metrics.avgEngagement || 0).toFixed(2)}%`],
           ['Total Reach', (metrics.totalReach || 0).toLocaleString()],

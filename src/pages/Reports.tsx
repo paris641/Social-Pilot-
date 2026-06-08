@@ -118,6 +118,18 @@ export default function Reports({ clientId: propClientId }: ReportsProps) {
                       <p className="text-[10px] text-muted-foreground">Posts</p>
                     </div>
                   )}
+                  {parsedMetrics.postsCount !== undefined && (
+                    <div className="text-center">
+                      <p className="text-lg font-bold">{parsedMetrics.postsCount}</p>
+                      <p className="text-[10px] text-muted-foreground">Feed</p>
+                    </div>
+                  )}
+                  {parsedMetrics.storiesCount !== undefined && (
+                    <div className="text-center">
+                      <p className="text-lg font-bold">{parsedMetrics.storiesCount}</p>
+                      <p className="text-[10px] text-muted-foreground">Stories</p>
+                    </div>
+                  )}
                   {parsedMetrics.avgEngagement !== undefined && (
                     <div className="text-center">
                       <p className="text-lg font-bold text-emerald-400">{parsedMetrics.avgEngagement?.toFixed(1)}%</p>
@@ -213,6 +225,14 @@ export default function Reports({ clientId: propClientId }: ReportsProps) {
                     <div>
                       <p className="text-lg font-bold">{metrics.postedPosts}</p>
                       <p className="text-[10px] text-muted-foreground">Posts</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold">{metrics.postsCount}</p>
+                      <p className="text-[10px] text-muted-foreground">Feed</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold">{metrics.storiesCount}</p>
+                      <p className="text-[10px] text-muted-foreground">Stories</p>
                     </div>
                     <div>
                       <p className="text-lg font-bold text-emerald-400">{metrics.avgEngagement?.toFixed(1)}%</p>

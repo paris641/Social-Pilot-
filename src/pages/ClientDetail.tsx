@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { clientsApi } from '../services/api';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Instagram, Facebook, Activity, Calendar, Library, BarChart2, FileText, Edit2 } from 'lucide-react';
+import { ArrowLeft, Instagram, Facebook, Activity, Calendar as CalendarIcon, Library, BarChart2, FileText, Edit2 } from 'lucide-react';
 import Analytics from './Analytics';
 import Calendar from './Calendar';
 import ContentLibrary from './ContentLibrary';
@@ -12,7 +12,7 @@ import Reports from './Reports';
 const tabs = [
   { id: 'overview', label: 'Overview', icon: Activity },
   { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
+  { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
   { id: 'content', label: 'Content', icon: Library },
   { id: 'reports', label: 'Reports', icon: FileText },
 ];
