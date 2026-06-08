@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+backend/dist/
+backend/node_modules/
+data/
+storage/
+*.log
+.env.local
+.DS_Store
