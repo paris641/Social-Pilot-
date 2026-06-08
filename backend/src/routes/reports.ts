@@ -4,6 +4,82 @@ import path from 'path';
 import fs from 'fs';
 import { prisma } from '../utils/database';
 import { logger } from '../utils/logger';
+import OpenAI from 'openai';
+
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OpenAI API key not configured');
+  return new OpenAI({ apiKey });
+}
+
+// POST generate and save monthly report (can be called by a scheduler)
+reportRoutes.post('/generate', async (req, res, next) => {
+  try {
+    const { clientId, month, year } = req.body;
+    if (!clientId || !month || !year) return res.status(400).json({ error: 'clientId, month and year required' });
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    const [client, posts, analytics] = await Promise.all([
+      prisma.client.findUnique({ where: { id: clientId }, include: { socialAccounts: true } }),
+      prisma.calendarEntry.findMany({ where: { clientId, date: { gte: startDate, lte: endDate } } }),
+      prisma.analyticsSnapshot.findMany({ where: { clientId, date: { gte: startDate, lte: endDate } }, orderBy: { date: 'asc' } }),
+    ]);
+
+    const postedPosts = posts.filter((p) => p.status === 'posted');
+    const reelsCount = postedPosts.filter((p) => p.contentType === 'reel').length;
+    const storiesCount = postedPosts.filter((p) => p.contentType === 'story').length;
+    const postsCount = postedPosts.filter((p) => p.contentType === 'post').length;
+
+    const avgEngagement = analytics.length > 0 ? analytics.reduce((sum, a) => sum + a.engagement, 0) / analytics.length : 0;
+    const totalReach = analytics.reduce((sum, a) => sum + a.reach, 0);
+    const followerGrowth = analytics.length > 1 ? analytics[analytics.length - 1].followers - analytics[0].followers : 0;
+
+    const prompt = `Write a professional social media monthly report executive summary.
+
+Client: ${client?.name} (${client?.brandName})
+Industry: ${client?.industry}
+Month: ${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}
+
+Stats:
+- Total posts published (all formats): ${postedPosts.length}
+- Feed posts published: ${postsCount}
+- Stories published: ${storiesCount}
+- Reels published: ${reelsCount}
+- Average engagement rate: ${avgEngagement.toFixed(2)}%
+- Total reach: ${totalReach.toLocaleString()}
+- Follower growth: ${followerGrowth > 0 ? '+' : ''}${followerGrowth}
+
+Write:
+1. Executive summary (2-3 sentences)
+2. What worked well (3 bullet points)
+3. What needs improvement (2 bullet points)
+4. Strategy recommendations for next month (3 bullet points)
+
+Be specific and data-driven. Professional agency tone.`;
+
+    const openai = getOpenAI();
+    const response = await openai.chat.completions.create({ model: 'gpt-4o', messages: [{ role: 'user', content: prompt }], max_tokens: 600 });
+    const summary = response.choices[0].message.content;
+
+    const report = await prisma.report.create({
+      data: {
+        clientId,
+        title: `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year} Report`,
+        month,
+        year,
+        summary,
+        insights: JSON.stringify({}),
+        metrics: JSON.stringify({ postedPosts: postedPosts.length, postsCount, storiesCount, reelsCount, avgEngagement, totalReach, followerGrowth }),
+      },
+    });
+
+    res.status(201).json({ success: true, data: report });
+  } catch (err) {
+    next(err);
+  }
+});
 
 export const reportRoutes = Router();
 
