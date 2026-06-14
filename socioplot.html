@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocioPlot - Social Media Client Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f1117;
+            --bg-card: #1a1d27;
+            --bg-card-hover: #222536;
+            --ig-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            --fb-blue: #1877f2;
+            --color-posted: #22c55e;
+            --color-missed: #ef4444;
+            --color-planned: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --font-inter: 'Inter', sans-serif;
+            --font-space: 'Space Grotesk', sans-serif;
+            --accent: #6366f1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-inter);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+        h1, h2, h3, h4, h5, h6, .space-font { font-family: var(--font-space); }
+
+        /* Topbar */
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 2rem; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; background: var(--ig-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .controls { display: flex; gap: 1rem; align-items: center; }
+        select, button, input, textarea {
+            background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem; border-radius: 6px; font-family: var(--font-inter); outline: none;
+            transition: all 0.2s ease;
+        }
+        select:hover, button:hover, input:hover, textarea:hover { border-color: var(--accent); }
+        button { cursor: pointer; font-weight: 500; background: var(--bg-card-hover); }
+        button.primary { background: var(--accent); color: white; border: none; }
+        button.primary:hover { background: #4f46e5; }
+
+        .clock { font-family: var(--font-space); font-weight: 500; color: var(--text-muted); }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0.5rem; padding: 1rem 2rem; border-bottom: 1px solid var(--border-color); }
+        .tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 0.5rem 1rem; color: var(--text-muted); font-size: 1rem; }
+        .tab-btn.active { color: var(--text-main); border-bottom-color: var(--accent); }
+
+        /* Layout */
+        .container { padding: 2rem; max-width: 1400px; margin: 0 auto; display: none; }
+        .container.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Stats Bar */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+        .stat-label { color: var(--text-muted); font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-family: var(--font-space); font-weight: 700; margin-bottom: 0.5rem; }
+        .stat-subtext { font-size: 0.875rem; color: var(--text-muted); }
+        .progress-bar-bg { background: var(--bg-dark); height: 6px; border-radius: 3px; overflow: hidden; margin-top: 0.5rem; }
+        .progress-bar-fill { height: 100%; background: var(--accent); transition: width 0.5s ease; }
+        .fill-ig { background: var(--ig-gradient); }
+        .fill-fb { background: var(--fb-blue); }
+
+        /* Calendar */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+        .day-header { text-align: center; color: var(--text-muted); font-weight: 600; padding: 0.5rem; font-size: 0.875rem; }
+        .day-cell { 
+            background: var(--bg-card); min-height: 100px; border-radius: 8px; padding: 0.5rem; 
+            border: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s;
+            display: flex; flex-direction: column; position: relative;
+        }
+        .day-cell:hover { border-color: var(--text-muted); background: var(--bg-card-hover); }
+        .day-cell.today { border-color: #fbbf24; border-width: 2px; }
+        .day-cell.other-month { opacity: 0.3; pointer-events: none; }
+        .day-number { font-weight: 600; font-family: var(--font-space); margin-bottom: auto; }
+        
+        .status-indicators { display: flex; gap: 4px; margin-top: 4px; }
+        .status-dot { width: 100%; height: 6px; border-radius: 3px; }
+        .dot-green { background-color: var(--color-posted); }
+        .dot-red { background-color: var(--color-missed); }
+        .dot-yellow { background-color: var(--color-planned); }
+        .dot-pink { background: var(--ig-gradient); }
+        .dot-blue { background: var(--fb-blue); }
+
+        /* Modals */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(15, 17, 23, 0.8); backdrop-filter: blur(4px);
+            display: none; justify-content: center; align-items: center; z-index: 50; 
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content { 
+            background: var(--bg-card); padding: 2rem; border-radius: 12px; 
+            width: 90%; max-width: 600px; border: 1px solid var(--border-color);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-close { background: transparent; border: none; font-size: 1.5rem; color: var(--text-muted); }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.875rem; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; }
+        
+        .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .chip { padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.875rem; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-dark); }
+        .chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+        
+        .status-btn { flex: 1; padding: 0.5rem; text-align: center; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-color); transition: all 0.2s; }
+        .status-btn.posted.active { background: var(--color-posted); color: white; border-color: var(--color-posted); }
+        .status-btn.missed.active { background: var(--color-missed); color: white; border-color: var(--color-missed); }
+        .status-btn.planned.active { background: var(--color-planned); color: white; border-color: var(--color-planned); }
+
+        .flex-row { display: flex; gap: 1rem; }
+        .platform-section { flex: 1; background: var(--bg-dark); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); }
+        .platform-header { font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .ig-badge { color: transparent; background: var(--ig-gradient); -webkit-background-clip: text; }
+        .fb-badge { color: var(--fb-blue); }
+
+        /* Report & Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { color: var(--text-muted); font-weight: 500; font-size: 0.875rem; text-transform: uppercase; }
+        tr:hover td { background: var(--bg-card-hover); }
+
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; }
+        .report-section { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); }
+
+        /* Helpers */
+        .mt-4 { margin-top: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+        @media print {
+            body { background: white; color: black; }
+            .topbar, .tabs, button { display: none !important; }
+            .container { display: block !important; padding: 0; }
+            .stat-card, .report-section { border: 1px solid #ccc; background: white; color: black; page-break-inside: avoid; }
+            .stat-label, .stat-subtext, .text-muted { color: #666; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="logo">SocioPlot</div>
+        <div class="controls">
+            <div class="clock" id="liveClock">00:00:00 IST</div>
+            <select id="clientDropdown" onchange="switchClient()">
+                <option value="">No clients found</option>
+            </select>
+            <button onclick="openModal('manageClientsModal')">Manage Clients</button>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tracker', this)">Daily Tracker</button>
+        <button class="tab-btn" onclick="switchTab('report', this)">Monthly Report</button>
+        <button class="tab-btn" onclick="switchTab('ads', this)">Ads Log</button>
+        <button class="tab-btn" onclick="switchTab('billing', this)">Billing</button>
+    </nav>
+
+    <!-- Tracker Tab -->
+    <main class="container active" id="tab-tracker">
+        <div class="stats-grid" id="trackerStats">
+            <!-- Populated via JS -->
+        </div>
+
+        <div class="calendar-header">
+            <button onclick="changeMonth(-1)">&#8592; Prev</button>
+            <h2 id="currentMonthLabel" class="space-font">June 2026</h2>
+            <button onclick="changeMonth(1)">Next &#8594;</button>
+        </div>
+        
+        <div class="calendar-grid">
+            <div class="day-header">Sun</div>
+            <div class="day-header">Mon</div>
+            <div class="day-header">Tue</div>
+            <div class="day-header">Wed</div>
+            <div class="day-header">Thu</div>
+            <div class="day-header">Fri</div>
+            <div class="day-header">Sat</div>
+        </div>
+        <div class="calendar-grid" id="calendarBody">
+            <!-- Populated via JS -->
+        </div>
+    </main>
+
+    <!-- Report Tab -->
+    <main class="container" id="tab-report">
+        <div class="flex-between mb-4">
+            <h2 class="space-font">Monthly Report</h2>
+            <button class="primary" onclick="window.print()">Export as PDF</button>
+        </div>
+        
+        <div class="stats-grid" id="reportStats">
+            <!-- Populated via JS -->
+        </div>
+
+        <div class="report-grid">
+            <div class="report-section" id="reportDetails">
+                <!-- Content -->
+            </div>
+            <div class="report-section" id="momComparison">
+                <!-- Content -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Ads Log Tab -->
+    <main class="container" id="tab-ads">
+        <div class="flex-between mb-4">
+            <h2 class="space-font">Ads Log</h2>
+            <div class="stat-card" style="padding: 0.5rem 1rem; border-radius: 8px;">
+                <span class="stat-label">Total Spend (All Time)</span>
+                <span class="stat-value" id="totalAdSpend" style="font-size: 1.5rem; margin-left: 1rem;">₹0</span>
+            </div>
+        </div>
+        <div class="report-section">
+            <div class="form-group flex-row align-end">
+                <div>
+                    <label>Platform</label>
+                    <select id="adPlatform">
+                        <option>Instagram</option>
+                        <option>Facebook</option>
+                        <option>Both</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Ad Name</label>
+                    <input type="text" id="adName" placeholder="e.g. Summer Sale Boost">
+                </div>
+                <div>
+                    <label>Spend (₹)</label>
+                    <input type="number" id="adSpend" placeholder="0">
+                </div>
+                <div>
+                    <label>Date</label>
+                    <input type="date" id="adDate">
+                </div>
+                <button class="primary" onclick="addAdLog()" style="height: 42px; margin-top: auto;">Log Ad</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Platform</th>
+                        <th>Name</th>
+                        <th>Spend</th>
+                        <th>Notes</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="adsTableBody">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Billing Tab -->
+    <main class="container" id="tab-billing">
+        <h2 class="space-font mb-4">Billing Dashboard</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Collected (6M)</div>
+                <div class="stat-value" id="billingCollected">₹0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--color-missed);">
+                <div class="stat-label" style="color: var(--color-missed);">Total Pending</div>
+                <div class="stat-value" id="billingPending">₹0</div>
+            </div>
+        </div>
+        <div class="report-section mt-4">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Fee Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="billingTableBody">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modals -->
+
+    <!-- Manage Clients Modal -->
+    <div class="modal-overlay" id="manageClientsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="space-font">Manage Clients</h3>
+                <button class="modal-close" onclick="closeModal('manageClientsModal')">&times;</button>
+            </div>
+            <div class="form-group flex-row">
+                <div style="flex:1;">
+                    <input type="text" id="newClientName" placeholder="Client Name">
+                </div>
+                <div style="flex:1;">
+                    <input type="text" id="newClientIG" placeholder="IG Handle">
+                </div>
+            </div>
+            <div class="form-group flex-row">
+                <div style="flex:1;">
+                    <input type="text" id="newClientFB" placeholder="FB Page">
+                </div>
+                <div style="flex:1;">
+                    <input type="number" id="newClientFee" placeholder="Monthly Fee (₹)">
+                </div>
+            </div>
+            <button class="primary mb-4" onclick="addClient()" style="width: 100%">Add Client</button>
+            
+            <table style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Fee</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Daily Log Modal -->
+    <div class="modal-overlay" id="dailyLogModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="space-font" id="logModalTitle">Log for Date</h3>
+                <button class="modal-close" onclick="closeModal('dailyLogModal')">&times;</button>
+            </div>
+            <div class="flex-row" style="align-items: stretch;">
+                <!-- Instagram Section -->
+                <div class="platform-section">
+                    <div class="platform-header ig-badge">Instagram</div>
+                    
+                    <label class="stat-label">Status</label>
+                    <div class="flex-row mb-4" id="igStatusChips">
+                        <div class="status-btn posted" onclick="selectStatus('ig', 'posted', this)">Posted</div>
+                        <div class="status-btn missed" onclick="selectStatus('ig', 'missed', this)">Missed</div>
+                        <div class="status-btn planned" onclick="selectStatus('ig', 'planned', this)">Planned</div>
+                    </div>
+
+                    <label class="stat-label">Post Type</label>
+                    <div class="chips mb-4" id="igTypeChips">
+                        <div class="chip" onclick="selectType('ig', 'Reel', this)">Reel</div>
+                        <div class="chip" onclick="selectType('ig', 'Story', this)">Story</div>
+                        <div class="chip" onclick="selectType('ig', 'Static', this)">Static</div>
+                        <div class="chip" onclick="selectType('ig', 'Carousel', this)">Carousel</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Caption / Notes</label>
+                        <textarea id="igNotes" rows="3"></textarea>
+                    </div>
+
+                    <div class="flex-row form-group">
+                        <div style="flex:1">
+                            <label>Followers</label>
+                            <input type="number" id="igFollowers">
+                        </div>
+                        <div style="flex:1">
+                            <label>Likes</label>
+                            <input type="number" id="igLikes">
+                        </div>
+                        <div style="flex:1">
+                            <label>Comments</label>
+                            <input type="number" id="igComments">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Facebook Section -->
+                <div class="platform-section">
+                    <div class="platform-header fb-badge">Facebook</div>
+                    
+                    <label class="stat-label">Status</label>
+                    <div class="flex-row mb-4" id="fbStatusChips">
+                        <div class="status-btn posted" onclick="selectStatus('fb', 'posted', this)">Posted</div>
+                        <div class="status-btn missed" onclick="selectStatus('fb', 'missed', this)">Missed</div>
+                        <div class="status-btn planned" onclick="selectStatus('fb', 'planned', this)">Planned</div>
+                    </div>
+
+                    <label class="stat-label">Post Type</label>
+                    <div class="chips mb-4" id="fbTypeChips">
+                        <div class="chip" onclick="selectType('fb', 'Reel', this)">Reel</div>
+                        <div class="chip" onclick="selectType('fb', 'Story', this)">Story</div>
+                        <div class="chip" onclick="selectType('fb', 'Static', this)">Static</div>
+                        <div class="chip" onclick="selectType('fb', 'Carousel', this)">Carousel</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Caption / Notes</label>
+                        <textarea id="fbNotes" rows="3"></textarea>
+                    </div>
+
+                    <div class="flex-row form-group">
+                        <div style="flex:1">
+                            <label>Followers</label>
+                            <input type="number" id="fbFollowers">
+                        </div>
+                        <div style="flex:1">
+                            <label>Likes</label>
+                            <input type="number" id="fbLikes">
+                        </div>
+                        <div style="flex:1">
+                            <label>Comments</label>
+                            <input type="number" id="fbComments">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-right">
+                <button class="primary" onclick="saveDailyLog()">Save Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA LAYER ---
+        let db = {
+            clients: [],
+            activeClientId: null
+        };
+
+        const STORAGE_KEY = 'socioplot_data';
+
+        function loadData() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                db = JSON.parse(data);
+            } else {
+                db.clients = [];
+            }
+            if (!db.activeClientId && db.clients.length > 0) {
+                db.activeClientId = db.clients[0].id;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        }
+
+        function getActiveClient() {
+            return db.clients.find(c => c.id === db.activeClientId);
+        }
+
+        function initClientDataTemplate() {
+            return {
+                logs: {}, // 'YYYY-MM': { 'YYYY-MM-DD': { ig: {}, fb: {} } }
+                ads: [],
+                billing: {} // 'YYYY-MM': 'Paid' | 'Pending'
+            };
+        }
+
+        // --- GLOBAL STATE ---
+        let currentDate = new Date(); // Represents viewed month
+        let selectedDateStr = null;
+
+        // --- INIT ---
+        function init() {
+            loadData();
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderClientDropdown();
+            if (db.clients.length > 0) {
+                renderAll();
+            } else {
+                openModal('manageClientsModal');
+            }
+        }
+
+        // --- UTILS ---
+        function getISTDate(dateObj) {
+            const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
+            return new Date(utc + (3600000 * 5.5)); // IST is +5:30
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const ist = getISTDate(now);
+            document.getElementById('liveClock').innerText = 
+                ist.toLocaleTimeString('en-US', { hour12: false }) + ' IST';
+        }
+
+        function formatCurrency(amount) {
+            return '₹' + parseInt(amount).toLocaleString('en-IN');
+        }
+
+        function getMonthKey(date) {
+            return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        }
+
+        function getDayKey(date) {
+            return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+        }
+
+        function getTodayKey() {
+            return getDayKey(getISTDate(new Date()));
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function switchTab(tabId, btnElem) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btnElem.classList.add('active');
+            document.querySelectorAll('main.container').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            renderAll(); // Re-render data for the new tab
+        }
+
+        // --- CLIENT MANAGEMENT ---
+        function renderClientDropdown() {
+            const select = document.getElementById('clientDropdown');
+            select.innerHTML = '';
+            if (db.clients.length === 0) {
+                select.innerHTML = '<option value="">No clients found</option>';
+                return;
+            }
+            db.clients.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                if (c.id === db.activeClientId) opt.selected = true;
+                select.appendChild(opt);
+            });
+            renderClientsTable();
+        }
+
+        function switchClient() {
+            const select = document.getElementById('clientDropdown');
+            if(select.value) {
+                db.activeClientId = select.value;
+                saveData();
+                renderAll();
+            }
+        }
+
+        function addClient() {
+            const name = document.getElementById('newClientName').value;
+            const ig = document.getElementById('newClientIG').value;
+            const fb = document.getElementById('newClientFB').value;
+            const fee = document.getElementById('newClientFee').value;
+
+            if (!name) return alert('Name is required');
+
+            const newClient = {
+                id: 'c_' + Date.now(),
+                name, ig, fb, fee: Number(fee) || 0,
+                ...initClientDataTemplate()
+            };
+
+            db.clients.push(newClient);
+            db.activeClientId = newClient.id;
+            saveData();
+            
+            document.getElementById('newClientName').value = '';
+            document.getElementById('newClientIG').value = '';
+            document.getElementById('newClientFB').value = '';
+            document.getElementById('newClientFee').value = '';
+            
+            renderClientDropdown();
+            renderAll();
+        }
+
+        function deleteClient(id) {
+            if(confirm("Are you sure you want to delete this client? All their data will be lost.")) {
+                db.clients = db.clients.filter(c => c.id !== id);
+                if(db.activeClientId === id) {
+                    db.activeClientId = db.clients.length > 0 ? db.clients[0].id : null;
+                }
+                saveData();
+                renderClientDropdown();
+                renderAll();
+            }
+        }
+
+        function renderClientsTable() {
+            const tbody = document.getElementById('clientsTableBody');
+            tbody.innerHTML = '';
+            db.clients.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + c.name + '</td>' +
+                               '<td>' + formatCurrency(c.fee) + '</td>' +
+                               '<td><button onclick="deleteClient(\\'' + c.id + '\\')" style="background:var(--color-missed);color:white;border:none;padding:0.25rem 0.5rem">Delete</button></td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- RENDER ROUTER ---
+        function renderAll() {
+            if (!getActiveClient()) return;
+            const activeTab = document.querySelector('.tab-btn.active').textContent;
+            
+            if (activeTab === 'Daily Tracker') {
+                renderCalendar();
+                renderTrackerStats();
+            } else if (activeTab === 'Monthly Report') {
+                renderReport();
+            } else if (activeTab === 'Ads Log') {
+                renderAds();
+            } else if (activeTab === 'Billing') {
+                renderBilling();
+            }
+        }
+
+        // --- DAILY TRACKER ---
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+            renderTrackerStats();
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const monthKey = getMonthKey(currentDate);
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('currentMonthLabel').textContent = monthNames[month] + ' ' + year;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = getDaysInMonth(year, month);
+            
+            const tbody = document.getElementById('calendarBody');
+            tbody.innerHTML = '';
+
+            const client = getActiveClient();
+            const monthData = client.logs[monthKey] || {};
+            const todayStr = getTodayKey();
+
+            // Padding days
+            for (let i = 0; i < firstDay; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'day-cell other-month';
+                tbody.appendChild(cell);
+            }
+
+            // Month days
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayDate = new Date(year, month, i);
+                const dayStr = getDayKey(dayDate);
+                
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                if (dayStr === todayStr) cell.classList.add('today');
+                
+                cell.innerHTML = '<div class="day-number">' + i + '</div>';
+                
+                // Render status dots
+                if (monthData[dayStr]) {
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'status-indicators';
+                    const ig = monthData[dayStr].ig?.status;
+                    const fb = monthData[dayStr].fb?.status;
+                    
+                    if (ig === 'posted' && fb === 'posted') {
+                        statusDiv.innerHTML = '<div class="status-dot dot-green"></div>';
+                    } else if (ig === 'posted') {
+                        statusDiv.innerHTML = '<div class="status-dot dot-pink"></div>';
+                    } else if (fb === 'posted') {
+                        statusDiv.innerHTML = '<div class="status-dot dot-blue"></div>';
+                    } else if (ig === 'missed' || fb === 'missed') {
+                        statusDiv.innerHTML = '<div class="status-dot dot-red"></div>';
+                    } else if (ig === 'planned' || fb === 'planned') {
+                        statusDiv.innerHTML = '<div class="status-dot dot-yellow"></div>';
+                    }
+                    cell.appendChild(statusDiv);
+                }
+
+                cell.onclick = () => openDailyLog(dayStr);
+                tbody.appendChild(cell);
+            }
+        }
+
+        let tempLogState = { ig: {}, fb: {} };
+
+        function openDailyLog(dayStr) {
+            selectedDateStr = dayStr;
+            const client = getActiveClient();
+            const monthKey = dayStr.substring(0, 7);
+            const logs = client.logs[monthKey]?.[dayStr] || { 
+                ig: { status: null, type: null, notes: '', followers: '', likes: '', comments: '' }, 
+                fb: { status: null, type: null, notes: '', followers: '', likes: '', comments: '' } 
+            };
+
+            tempLogState = JSON.parse(JSON.stringify(logs));
+            document.getElementById('logModalTitle').textContent = 'Log for ' + dayStr;
+            
+            // Populate UI
+            ['ig', 'fb'].forEach(platform => {
+                document.querySelectorAll('#' + platform + 'StatusChips .status-btn').forEach(b => b.classList.remove('active'));
+                if (tempLogState[platform].status) {
+                    const el = document.querySelector('#' + platform + 'StatusChips .status-btn.' + tempLogState[platform].status);
+                    if (el) el.classList.add('active');
+                }
+
+                document.querySelectorAll('#' + platform + 'TypeChips .chip').forEach(c => c.classList.remove('active'));
+                if (tempLogState[platform].type) {
+                    Array.from(document.querySelectorAll('#' + platform + 'TypeChips .chip')).find(c => c.textContent === tempLogState[platform].type)?.classList.add('active');
+                }
+
+                document.getElementById(platform + 'Notes').value = tempLogState[platform].notes || '';
+                document.getElementById(platform + 'Followers').value = tempLogState[platform].followers || '';
+                document.getElementById(platform + 'Likes').value = tempLogState[platform].likes || '';
+                document.getElementById(platform + 'Comments').value = tempLogState[platform].comments || '';
+            });
+
+            openModal('dailyLogModal');
+        }
+
+        function selectStatus(platform, status, elem) {
+            document.querySelectorAll('#' + platform + 'StatusChips .status-btn').forEach(b => b.classList.remove('active'));
+            elem.classList.add('active');
+            tempLogState[platform].status = status;
+        }
+
+        function selectType(platform, type, elem) {
+            document.querySelectorAll('#' + platform + 'TypeChips .chip').forEach(c => c.classList.remove('active'));
+            elem.classList.add('active');
+            tempLogState[platform].type = type;
+        }
+
+        function saveDailyLog() {
+            const client = getActiveClient();
+            const monthKey = selectedDateStr.substring(0, 7);
+            if (!client.logs[monthKey]) client.logs[monthKey] = {};
+
+            ['ig', 'fb'].forEach(platform => {
+                tempLogState[platform].notes = document.getElementById(platform + 'Notes').value;
+                tempLogState[platform].followers = parseInt(document.getElementById(platform + 'Followers').value) || 0;
+                tempLogState[platform].likes = parseInt(document.getElementById(platform + 'Likes').value) || 0;
+                tempLogState[platform].comments = parseInt(document.getElementById(platform + 'Comments').value) || 0;
+            });
+
+            client.logs[monthKey][selectedDateStr] = JSON.parse(JSON.stringify(tempLogState));
+            saveData();
+            closeModal('dailyLogModal');
+            renderAll();
+        }
+
+        function renderTrackerStats() {
+            const client = getActiveClient();
+            const monthKey = getMonthKey(currentDate);
+            const daysPassed = Math.min(new Date().getDate(), getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())); // approx
+            const monthData = client.logs[monthKey] || {};
+
+            let igPosted = 0, igMissed = 0, fbPosted = 0, fbMissed = 0;
+            let igStreak = 0, fbStreak = 0;
+
+            // Calculate stats
+            for(let i=1; i<=31; i++) {
+                const d = monthKey + '-' + String(i).padStart(2, '0');
+                if(monthData[d]) {
+                    if(monthData[d].ig?.status === 'posted') igPosted++;
+                    if(monthData[d].ig?.status === 'missed') igMissed++;
+                    if(monthData[d].fb?.status === 'posted') fbPosted++;
+                    if(monthData[d].fb?.status === 'missed') fbMissed++;
+                }
+            }
+
+            // Simple streak calc (looking back from today)
+            let d = new Date(getISTDate(new Date()));
+            while(true) {
+                const dk = getDayKey(d);
+                const mk = dk.substring(0, 7);
+                if(client.logs[mk]?.[dk]?.ig?.status === 'posted') igStreak++; else break;
+                d.setDate(d.getDate() - 1);
+            }
+            d = new Date(getISTDate(new Date()));
+            while(true) {
+                const dk = getDayKey(d);
+                const mk = dk.substring(0, 7);
+                if(client.logs[mk]?.[dk]?.fb?.status === 'posted') fbStreak++; else break;
+                d.setDate(d.getDate() - 1);
+            }
+
+            const igConsistency = daysPassed ? Math.round((igPosted / daysPassed) * 100) : 0;
+            const fbConsistency = daysPassed ? Math.round((fbPosted / daysPassed) * 100) : 0;
+
+            document.getElementById('trackerStats').innerHTML = 
+                '<div class="stat-card">' +
+                    '<div class="stat-label ig-badge">Instagram Performance</div>' +
+                    '<div class="stat-value">' + igPosted + ' <span style="font-size:1rem;color:var(--text-muted)">posted</span></div>' +
+                    '<div class="flex-between">' +
+                        '<span class="stat-subtext">' + igMissed + ' missed</span>' +
+                        '<span class="stat-subtext">Streak: <strong style="color:var(--color-posted)">' + igStreak + '🔥</strong></span>' +
+                    '</div>' +
+                    '<div class="progress-bar-bg"><div class="progress-bar-fill fill-ig" style="width: ' + Math.min(igConsistency, 100) + '%"></div></div>' +
+                    '<div class="text-right stat-subtext mt-4">' + Math.min(igConsistency, 100) + '% Consistency</div>' +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-label fb-badge">Facebook Performance</div>' +
+                    '<div class="stat-value">' + fbPosted + ' <span style="font-size:1rem;color:var(--text-muted)">posted</span></div>' +
+                    '<div class="flex-between">' +
+                        '<span class="stat-subtext">' + fbMissed + ' missed</span>' +
+                        '<span class="stat-subtext">Streak: <strong style="color:var(--color-posted)">' + fbStreak + '🔥</strong></span>' +
+                    '</div>' +
+                    '<div class="progress-bar-bg"><div class="progress-bar-fill fill-fb" style="width: ' + Math.min(fbConsistency, 100) + '%"></div></div>' +
+                    '<div class="text-right stat-subtext mt-4">' + Math.min(fbConsistency, 100) + '% Consistency</div>' +
+                '</div>';
+        }
+
+        // --- MONTHLY REPORT ---
+        function renderReport() {
+            const client = getActiveClient();
+            const monthKey = getMonthKey(currentDate);
+            const monthData = client.logs[monthKey] || {};
+            
+            // Calc current month stats
+            let totalPosts = 0, igPosts = 0, fbPosts = 0;
+            let igLikes = 0, fbLikes = 0;
+            let igComments = 0, fbComments = 0;
+            let igFollowersStart = null, igFollowersEnd = 0;
+            let fbFollowersStart = null, fbFollowersEnd = 0;
+            let typeCount = { ig: {}, fb: {} };
+
+            // sort dates
+            const sortedDates = Object.keys(monthData).sort();
+            
+            sortedDates.forEach(d => {
+                const ig = monthData[d].ig;
+                const fb = monthData[d].fb;
+                
+                if(ig) {
+                    if(ig.status === 'posted') { igPosts++; typeCount.ig[ig.type] = (typeCount.ig[ig.type] || 0) + 1; }
+                    igLikes += (ig.likes || 0); igComments += (ig.comments || 0);
+                    if(ig.followers) {
+                        if(igFollowersStart === null) igFollowersStart = ig.followers;
+                        igFollowersEnd = ig.followers;
+                    }
+                }
+                if(fb) {
+                    if(fb.status === 'posted') { fbPosts++; typeCount.fb[fb.type] = (typeCount.fb[fb.type] || 0) + 1; }
+                    fbLikes += (fb.likes || 0); fbComments += (fb.comments || 0);
+                    if(fb.followers) {
+                        if(fbFollowersStart === null) fbFollowersStart = fb.followers;
+                        fbFollowersEnd = fb.followers;
+                    }
+                }
+            });
+
+            totalPosts = igPosts + fbPosts;
+            let igTopType = Object.keys(typeCount.ig).reduce((a, b) => typeCount.ig[a] > typeCount.ig[b] ? a : b, 'N/A') || 'N/A';
+            let fbTopType = Object.keys(typeCount.fb).reduce((a, b) => typeCount.fb[a] > typeCount.fb[b] ? a : b, 'N/A') || 'N/A';
+
+            // Ad spend this month
+            const thisMonthAds = client.ads.filter(a => a.date.startsWith(monthKey));
+            const monthAdSpend = thisMonthAds.reduce((sum, a) => sum + a.spend, 0);
+
+            // Previous month stats for MoM
+            let prevD = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+            let prevMonthKey = getMonthKey(prevD);
+            let prevMonthData = client.logs[prevMonthKey] || {};
+            let prevPosts = 0;
+            Object.values(prevMonthData).forEach(day => {
+                if(day.ig?.status === 'posted') prevPosts++;
+                if(day.fb?.status === 'posted') prevPosts++;
+            });
+
+            let postGrowth = totalPosts - prevPosts;
+            let growthStr = postGrowth >= 0 ? '<span style="color:var(--color-posted)">+' + postGrowth + '</span>' : '<span style="color:var(--color-missed)">' + postGrowth + '</span>';
+
+            document.getElementById('reportStats').innerHTML = 
+                '<div class="stat-card">' +
+                    '<div class="stat-label">Total Posts Published</div>' +
+                    '<div class="stat-value">' + totalPosts + '</div>' +
+                    '<div class="stat-subtext">' + igPosts + ' IG • ' + fbPosts + ' FB</div>' +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-label">Total Ad Spend</div>' +
+                    '<div class="stat-value">' + formatCurrency(monthAdSpend) + '</div>' +
+                    '<div class="stat-subtext">' + thisMonthAds.length + ' campaigns run</div>' +
+                '</div>';
+
+            document.getElementById('reportDetails').innerHTML = 
+                '<h3 class="space-font mb-4">Detailed Breakdown</h3>' +
+                '<div class="flex-between mb-4">' +
+                    '<div>' +
+                        '<div class="ig-badge" style="font-weight:bold;">Instagram</div>' +
+                        '<div class="text-muted" style="font-size:0.875rem;">Likes: ' + igLikes + ' • Comments: ' + igComments + '</div>' +
+                        '<div class="text-muted" style="font-size:0.875rem;">Follower Growth: ' + ((igFollowersEnd - (igFollowersStart||igFollowersEnd)) > 0 ? '+' : '') + (igFollowersEnd - (igFollowersStart||igFollowersEnd)) + '</div>' +
+                        '<div class="text-muted" style="font-size:0.875rem;">Top Format: ' + igTopType + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<hr style="border:0; border-top: 1px solid var(--border-color); margin: 1rem 0;">' +
+                '<div class="flex-between">' +
+                    '<div>' +
+                        '<div class="fb-badge" style="font-weight:bold;">Facebook</div>' +
+                        '<div class="text-muted" style="font-size:0.875rem;">Likes: ' + fbLikes + ' • Comments: ' + fbComments + '</div>' +
+                        '<div class="text-muted" style="font-size:0.875rem;">Follower Growth: ' + ((fbFollowersEnd - (fbFollowersStart||fbFollowersEnd)) > 0 ? '+' : '') + (fbFollowersEnd - (fbFollowersStart||fbFollowersEnd)) + '</div>' +
+                        '<div class="text-muted" style="font-size:0.875rem;">Top Format: ' + fbTopType + '</div>' +
+                    '</div>' +
+                '</div>';
+
+            document.getElementById('momComparison').innerHTML = 
+                '<h3 class="space-font mb-4">Month over Month</h3>' +
+                '<table>' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th>Metric</th>' +
+                            '<th>Prev Month</th>' +
+                            '<th>This Month</th>' +
+                            '<th>Change</th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>' +
+                        '<tr>' +
+                            '<td>Total Posts</td>' +
+                            '<td>' + prevPosts + '</td>' +
+                            '<td>' + totalPosts + '</td>' +
+                            '<td>' + growthStr + '</td>' +
+                        '</tr>' +
+                    '</tbody>' +
+                '</table>' +
+                '<h4 class="space-font mt-4 mb-4" style="margin-top: 2rem;">Ad Campaigns (' + monthKey + ')</h4>' +
+                '<ul style="list-style:none;">' +
+                    (thisMonthAds.length ? thisMonthAds.map(a => 
+                        '<li style="padding: 0.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between;">' +
+                            '<span>' + a.name + ' (' + a.platform + ')</span>' +
+                            '<strong>' + formatCurrency(a.spend) + '</strong>' +
+                        '</li>'
+                    ).join('') : '<li class="text-muted">No ads run this month</li>') +
+                '</ul>';
+        }
+
+        // --- ADS LOG ---
+        function renderAds() {
+            const client = getActiveClient();
+            const tbody = document.getElementById('adsTableBody');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+            const sortedAds = [...client.ads].sort((a,b) => b.date.localeCompare(a.date));
+
+            sortedAds.forEach(a => {
+                total += a.spend;
+                const tr = document.createElement('tr');
+                tr.innerHTML = 
+                    '<td>' + a.date + '</td>' +
+                    '<td><span class="chip" style="border:none; background:var(--bg-dark)">' + a.platform + '</span></td>' +
+                    '<td>' + a.name + '</td>' +
+                    '<td>' + formatCurrency(a.spend) + '</td>' +
+                    '<td class="text-muted" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + (a.notes || '-') + '</td>' +
+                    '<td><button onclick="deleteAd(\\'' + a.id + '\\')" style="background:var(--color-missed);color:white;border:none;padding:0.25rem 0.5rem">Delete</button></td>';
+                tbody.appendChild(tr);
+            });
+            document.getElementById('totalAdSpend').textContent = formatCurrency(total);
+        }
+
+        function addAdLog() {
+            const platform = document.getElementById('adPlatform').value;
+            const name = document.getElementById('adName').value;
+            const spend = document.getElementById('adSpend').value;
+            const date = document.getElementById('adDate').value;
+
+            if(!name || !spend || !date) return alert("Please fill name, spend and date");
+
+            const client = getActiveClient();
+            client.ads.push({
+                id: 'ad_' + Date.now(),
+                platform, name, spend: Number(spend), date
+            });
+            saveData();
+
+            document.getElementById('adName').value = '';
+            document.getElementById('adSpend').value = '';
+            document.getElementById('adDate').value = '';
+            renderAds();
+        }
+
+        function deleteAd(id) {
+            const client = getActiveClient();
+            client.ads = client.ads.filter(a => a.id !== id);
+            saveData();
+            renderAds();
+        }
+
+        // --- BILLING ---
+        function renderBilling() {
+            const client = getActiveClient();
+            const tbody = document.getElementById('billingTableBody');
+            tbody.innerHTML = '';
+
+            let collected = 0;
+            let pending = 0;
+            const months = [];
+            
+            // Get last 6 months
+            let d = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            for(let i=0; i<6; i++) {
+                months.push(getMonthKey(new Date(d)));
+                d.setMonth(d.getMonth() - 1);
+            }
+
+            months.forEach(m => {
+                const status = client.billing[m] || 'Pending';
+                if(status === 'Paid') collected += client.fee;
+                else pending += client.fee;
+
+                const tr = document.createElement('tr');
+                const btnStyle = 'background:var(--bg-card-hover);border:1px solid var(--border-color);padding:0.25rem 0.5rem;';
+                const chipStyle = status === 'Paid' ? 'background:var(--color-posted); border-color:var(--color-posted)' : 'color:var(--color-missed); border-color:var(--color-missed)';
+                tr.innerHTML = 
+                    '<td>' + m + '</td>' +
+                    '<td>' + formatCurrency(client.fee) + '</td>' +
+                    '<td><span class="chip ' + (status === 'Paid' ? 'active' : '') + '" style="' + chipStyle + '">' + status + '</span></td>' +
+                    '<td>' +
+                        '<button onclick="toggleBilling(\\'' + m + '\\')" style="' + btnStyle + '">' +
+                            'Mark ' + (status === 'Paid' ? 'Pending' : 'Paid') +
+                        '</button>' +
+                    '</td>';
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('billingCollected').textContent = formatCurrency(collected);
+            document.getElementById('billingPending').textContent = formatCurrency(pending);
+        }
+
+        function toggleBilling(monthKey) {
+            const client = getActiveClient();
+            const current = client.billing[monthKey] || 'Pending';
+            client.billing[monthKey] = current === 'Paid' ? 'Pending' : 'Paid';
+            saveData();
+            renderBilling();
+        }
+
+        // --- MODAL UTILS ---
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // Start
+        window.onload = init;
+    </script>
+</body>
+</html>
